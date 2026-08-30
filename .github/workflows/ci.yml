@@ -1,0 +1,137 @@
+# Integration continue : a chaque envoi de code, la machine refait tout le parcours
+# depuis zero. Le but est d'attraper ce qui marche sur le poste d'Axel mais nulle part
+# ailleurs (dependance oubliee, fichier non versionne, chemin en dur).
+
+name: CI
+
+on:
+  push:
+    branches: ["main", "feat/**", "fix/**", "docs/**"]
+  pull_request:
+    branches: ["main"]
+
+# Annule la CI precedente quand un nouvel envoi arrive sur la meme branche : inutile
+# de payer 5 minutes de machine pour tester du code deja remplace.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    # Un vrai PostgreSQL, la meme version qu'en local. Tester sur SQLite uniquement
+    # laisserait passer tout ce qui differe entre les deux moteurs (cles etrangeres,
+    # types booleens, contraintes) : c'est justement ce que les tests doivent verifier.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: futurisys
+          POSTGRES_PASSWORD: futurisys
+          POSTGRES_DB: futurisys_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Environnement de test, distinct du developpement et de la production.
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://futurisys:futurisys@localhost:5432/futurisys_test
+      TEST_DATABASE_URL: postgresql+psycopg://futurisys:futurisys@localhost:5432/futurisys_test
+      # Cle jetable, valable le temps du job. La vraie cle de production est un secret
+      # GitHub, jamais un fichier du depot.
+      SECRET_KEY: cle-de-ci-non-secrete-regeneree-a-chaque-execution
+      ADMIN_USERNAME: admin_ci
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD || 'motdepasse-ci-jetable' }}
+      PYTHONPATH: src
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          # Remet les dependances deja telechargees : sans le cache, chaque execution
+          # retelecharge scikit-learn et ses 60 Mo.
+          cache: pip
+
+      - name: Installer les dependances
+        run: pip install -r requirements-dev.txt
+
+      - name: Verifier le style et les erreurs statiques
+        run: |
+          ruff check src tests
+          ruff format --check src tests
+
+      - name: Entrainer le modele
+        # Le modele est reentraine depuis les donnees brutes a chaque execution. C'est
+        # la preuve que la chaine complete tourne encore, et pas seulement que le
+        # fichier versionne se charge.
+        run: python -m futurisys.ml.train
+
+      - name: Initialiser la base PostgreSQL
+        run: python -m futurisys.db.create_db --reset
+
+      - name: Lancer les tests avec la couverture
+        run: pytest --cov --cov-report=term-missing --cov-report=xml --cov-report=html
+
+      - name: Refuser une couverture inferieure a 90 %
+        # Le garde-fou : sans seuil, la couverture se degrade commit apres commit
+        # sans que personne ne le remarque.
+        run: coverage report --fail-under=90
+
+      - name: Publier le rapport de couverture
+        # if: always() : le rapport est publie meme quand les tests echouent, c'est
+        # justement dans ce cas qu'on veut le consulter.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-couverture
+          path: |
+            htmlcov/
+            coverage.xml
+          retention-days: 30
+
+  # Verification que l'image de production se construit et demarre vraiment. Une API
+  # dont les tests passent mais dont l'image ne demarre pas n'est pas deployable.
+  image:
+    runs-on: ubuntu-latest
+    needs: tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Preparer le modele attendu par l'image
+        run: |
+          pip install -r requirements.txt
+          PYTHONPATH=src python -m futurisys.ml.train
+
+      - name: Construire l'image
+        run: docker build -t futurisys-api:${{ github.sha }} .
+
+      - name: Demarrer le conteneur et interroger /health
+        # SQLite en repli : l'image doit pouvoir demarrer sans PostgreSQL a cote,
+        # c'est exactement la situation de l'hebergement de demonstration.
+        run: |
+          docker run -d --name api_test -p 7860:7860 \
+            -e DATABASE_URL=sqlite:////tmp/futurisys.db \
+            -e SECRET_KEY=cle-jetable-de-verification \
+            futurisys-api:${{ github.sha }}
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:7860/health && break
+            sleep 2
+          done
+          curl -sf http://localhost:7860/health | tee /tmp/health.json
+          grep -q '"model_loaded":true' /tmp/health.json
+
+      - name: Journaux du conteneur en cas d'echec
+        if: failure()
+        run: docker logs api_test
