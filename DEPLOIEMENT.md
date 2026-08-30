@@ -24,7 +24,11 @@ A chaque tag, le pipeline entraine le modele, construit l'image, la publie, **la
 demarre et interroge son etat de sante** avant de la declarer bonne. Une image qui ne
 demarre pas ne sort jamais.
 
-Versions publiees : `v1.2.1`, `v1.3.0`, `latest`.
+L'image est construite pour **x86 et ARM**. Sans la variante ARM, les Mac recents la
+feraient tourner en emulation, avec un avertissement a chaque lancement et des
+performances degradees. Or la demonstration se fait justement sur un Mac ARM.
+
+Versions publiees : `v1.2.1`, `v1.3.0`, `v1.4.0`, `latest`.
 
 ## 2. Render, essaye et ecarte
 
