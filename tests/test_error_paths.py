@@ -125,3 +125,46 @@ def test_postgresql_recoit_le_test_de_connexion_avant_reutilisation():
 def test_l_environnement_de_production_est_reconnu():
     assert Settings(app_env="prod").is_production is True
     assert Settings(app_env="dev").is_production is False
+
+
+def test_le_demarrage_prepare_la_base_quand_c_est_demande(monkeypatch, capsys, engine):
+    """Sur l'hebergement de demonstration, aucune commande ne peut etre lancee a la
+    main : sans cette preparation au demarrage, le premier appel repondrait 500."""
+    import asyncio
+
+    from sqlalchemy.orm import sessionmaker
+
+    from futurisys.db import create_db as create_db_module
+
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    monkeypatch.setattr(create_db_module, "SessionLocal", factory)
+    monkeypatch.setattr(create_db_module, "engine", engine)
+    monkeypatch.setattr(main_module.settings, "auto_init_db", True)
+
+    async def demarrer():
+        async with main_module.lifespan(main_module.app):
+            pass
+
+    asyncio.run(demarrer())
+    assert "Initialisation de la base" in capsys.readouterr().out
+
+
+def test_une_base_injoignable_au_demarrage_ne_bloque_pas_le_service(monkeypatch, capsys):
+    """Un conteneur qui refuse de demarrer ne dit rien ; un service qui demarre et
+    annonce /health degrade se diagnostique."""
+    import asyncio
+
+    from futurisys.db import create_db as create_db_module
+
+    def base_injoignable(*args, **kwargs):
+        raise RuntimeError("base injoignable")
+
+    monkeypatch.setattr(create_db_module, "initialise", base_injoignable)
+    monkeypatch.setattr(main_module.settings, "auto_init_db", True)
+
+    async def demarrer():
+        async with main_module.lifespan(main_module.app):
+            pass
+
+    asyncio.run(demarrer())
+    assert "Initialisation de la base impossible" in capsys.readouterr().out

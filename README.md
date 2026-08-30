@@ -13,7 +13,7 @@ une API, une base de donnees, des tests, et une mise en ligne automatisee.
 | **Qualite** | R2 de 0,709 sur 302 batiments jamais vus, erreur mediane de 36 % |
 | **API** | FastAPI, documentation interactive sur `/docs` |
 | **Base** | PostgreSQL 16, 5 tables, chaque appel trace |
-| **Tests** | 125 tests Pytest, 99 % de couverture |
+| **Tests** | 127 tests Pytest, 99 % de couverture |
 | **Mise en ligne** | GitHub Actions vers Hugging Face Spaces |
 
 ---
@@ -327,7 +327,7 @@ futurisys-energy-api/
 │       ├── preparation.py        la chaine de nettoyage
 │       ├── train.py              entrainement et sauvegarde
 │       └── predictor.py          chargement et prediction
-├── tests/                        125 tests
+├── tests/                        127 tests
 ├── Dockerfile                    image de production
 ├── docker-compose.yml            PostgreSQL local
 └── requirements.txt              dependances figees
@@ -459,7 +459,7 @@ collecteur externe, et rotation programmee de la cle de signature.
 ## Tests
 
 ```bash
-PYTHONPATH=src pytest                                   # les 125 tests
+PYTHONPATH=src pytest                                   # les 127 tests
 PYTHONPATH=src pytest --cov --cov-report=term-missing   # avec la couverture
 PYTHONPATH=src pytest --cov --cov-report=html           # rapport lisible : htmlcov/index.html
 ```
@@ -472,7 +472,7 @@ TEST_DATABASE_URL=postgresql+psycopg://futurisys:futurisys@localhost:5432/futuri
   PYTHONPATH=src pytest
 ```
 
-### Ce que couvrent les 125 tests
+### Ce que couvrent les 127 tests
 
 | Fichier | Nombre | Ce qui est verifie |
 |---|---:|---|
@@ -485,7 +485,7 @@ TEST_DATABASE_URL=postgresql+psycopg://futurisys:futurisys@localhost:5432/futuri
 | `test_api_auth.py` | 12 | connexion, refus, droits |
 | `test_api_predictions.py` | 24 | le parcours complet, la validation, le cloisonnement |
 | `test_api_buildings.py` | 12 | filtres, pagination, 404 |
-| `test_error_paths.py` | 9 | modele absent, base injoignable, prediction en echec |
+| `test_error_paths.py` | 11 | modele absent, base injoignable, prediction en echec |
 | `test_cli_and_session.py` | 5 | les commandes de deploiement, la fermeture des sessions |
 
 Couverture : **99 %**. Les lignes non couvertes sont la recherche complete
@@ -517,7 +517,7 @@ Deux jobs enchaines :
 
 1. **tests** — installe les dependances, verifie le style (ruff), **reentraine le
    modele depuis les donnees brutes**, cree la base sur un vrai PostgreSQL 16, lance
-   les 125 tests, refuse une couverture sous 90 %, et publie le rapport.
+   les 127 tests, refuse une couverture sous 90 %, et publie le rapport.
 2. **image** — construit l'image Docker, la demarre, et interroge `/health`. Une API
    dont les tests passent mais dont l'image ne demarre pas n'est pas deployable.
 
