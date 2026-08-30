@@ -93,7 +93,22 @@ def deployer(space: str | None, version: str) -> str:  # pragma: no cover
 
     # exist_ok : le script cree le Space au premier deploiement et le reutilise ensuite.
     # Sans cela, le tout premier deploiement echouerait sur un Space introuvable.
-    api.create_repo(repo_id=space, repo_type="space", space_sdk="docker", exist_ok=True)
+    try:
+        api.create_repo(repo_id=space, repo_type="space", space_sdk="docker", exist_ok=True)
+    except Exception as erreur:
+        # Hugging Face reserve les Spaces Docker aux comptes payants : la creation
+        # repond 402. Ce n'est pas une panne du projet, et la trace d'exception brute
+        # ne le dit pas. On traduit, avec les options concretes.
+        if "402" in str(erreur):
+            raise SystemExit(
+                "Hugging Face refuse de creer le Space : les Spaces Docker sont "
+                "reserves aux comptes PRO.\n"
+                "Trois issues :\n"
+                "  - souscrire PRO sur https://huggingface.co/pro ;\n"
+                "  - deployer ailleurs (voir DEPLOIEMENT.md) ;\n"
+                "  - viser un compte deja PRO avec la variable HF_SPACE."
+            ) from erreur
+        raise
     print(f"Space pret : {space}")
 
     # Les secrets du Space sont poses avant l'envoi du code, pour que le conteneur

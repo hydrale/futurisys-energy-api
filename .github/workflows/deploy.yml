@@ -14,8 +14,67 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Publication de l'image dans le registre de GitHub. Ne depend d'aucun compte tiers
+  # ni d'aucun abonnement : c'est la partie du deploiement qui marche toujours, et
+  # c'est elle qui prouve que la chaine produit un livrable installable.
+  #   docker run -p 8000:7860 ghcr.io/hydrale/futurisys-energy-api:v1.2.0
+  image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # packages: write est indispensable pour pousser dans le registre. Sans cette
+      # ligne, le jeton fourni au workflow est en lecture seule et la poussee echoue.
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Entrainer le modele embarque dans l'image
+        run: |
+          pip install -r requirements.txt
+          PYTHONPATH=src python -m futurisys.ml.train
+
+      - name: S'identifier aupres du registre
+        # Le jeton est fourni par GitHub le temps du job : rien a configurer, rien
+        # a faire tourner, et il expire tout seul a la fin.
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Construire et publier
+        run: |
+          # Le nom du depot est mis en minuscules : le registre les exige, alors que
+          # les noms de depots GitHub acceptent les majuscules.
+          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          docker build -t "$IMAGE:${{ github.ref_name }}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${{ github.ref_name }}"
+          docker push "$IMAGE:latest"
+          echo "Image publiee : $IMAGE:${{ github.ref_name }}"
+
+      - name: Verifier que l'image publiee demarre vraiment
+        run: |
+          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          docker run -d --name verification -p 7860:7860 \
+            -e DATABASE_URL=sqlite:////tmp/futurisys.db \
+            -e SECRET_KEY=cle-jetable-de-verification \
+            "$IMAGE:${{ github.ref_name }}"
+          for i in $(seq 1 40); do
+            curl -sf http://localhost:7860/health && break
+            sleep 3
+          done
+          curl -sf http://localhost:7860/health | tee /tmp/sante.json
+          grep -q '"model_loaded":true' /tmp/sante.json
+
   deploiement:
     runs-on: ubuntu-latest
+    # L'hebergement n'est tente qu'une fois l'image verifiee.
+    needs: image
+    # continue-on-error : Hugging Face reserve les Spaces Docker aux comptes PRO et
+    # repond 402. Tant que l'abonnement n'est pas pris, cette etape echoue sans
+    # remettre en cause la publication de l'image, qui est le livrable verifiable.
+    continue-on-error: true
     # L'environnement GitHub "production" : c'est lui qui porte les secrets de mise
     # en ligne, separes de ceux utilises par les tests.
     environment: production
