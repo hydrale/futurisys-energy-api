@@ -199,11 +199,24 @@ tr:last-child td { border-bottom: none; }
   <section class="carte">
     <h2>Estimer un batiment du jeu de donnees</h2>
     <p class="explication">Predit pour un batiment deja en base et compare a sa consommation reellement mesuree en 2016.</p>
-    <label for="b-id">Identifiant Seattle du batiment (essayer 1, 2, 3...)</label>
+    <div class="grille2">
+      <div>
+        <label for="b-filtre-usage">Filtrer par usage</label>
+        <select id="b-filtre-usage" onchange="chargerListeBatiments()">
+          <option value="">Tous les usages</option>
+        </select>
+      </div>
+      <div>
+        <label for="b-recherche">Rechercher par nom ou quartier</label>
+        <input id="b-recherche" placeholder="ex : hotel, downtown..." oninput="filtrerListeBatiments()">
+      </div>
+    </div>
+    <label for="b-select">Batiment</label>
     <div class="ligne-action">
-      <input id="b-id" value="1" style="max-width:160px">
+      <select id="b-select" style="flex:1"></select>
       <button class="principal" onclick="predireBatimentConnu()">Estimer</button>
     </div>
+    <p class="explication" id="b-compte" style="margin-top:6px"></p>
     <div class="erreur" id="b-erreur"></div>
     <div class="resultat" id="b-resultat">
       <div class="chiffres">
@@ -420,6 +433,8 @@ async function afficherTableauDeBord() {
   document.getElementById("tableau-de-bord").classList.add("visible");
   chargerModele();
   chargerJournal();
+  chargerFiltreUsages();
+  chargerListeBatiments();
 }
 
 async function chargerModele() {
@@ -436,11 +451,83 @@ async function chargerModele() {
   }
 }
 
+// Les usages viennent de la fiche du modele : ce sont exactement ceux qu'il connait,
+// pas la peine d'interroger un autre endpoint pour les obtenir.
+async function chargerFiltreUsages() {
+  const select = document.getElementById("b-filtre-usage");
+  try {
+    const m = await appel("/model");
+    const usages = (m.property_types || []).slice().sort();
+    usages.forEach(function (u) {
+      const option = document.createElement("option");
+      option.value = u;
+      option.textContent = u;
+      select.appendChild(option);
+    });
+  } catch (e) { /* le filtre reste sur "Tous les usages" */ }
+}
+
+let batimentsCharges = [];
+
+// Charge jusqu'a 200 batiments (le maximum accepte par l'API en une page), filtres
+// par usage si un usage est choisi. 200 suffit largement pour une demonstration et
+// couvre deja les identifiants 1, 2, 3... les plus simples a montrer.
+async function chargerListeBatiments() {
+  const usage = document.getElementById("b-filtre-usage").value;
+  const select = document.getElementById("b-select");
+  const compte = document.getElementById("b-compte");
+  select.innerHTML = '<option>Chargement...</option>';
+  try {
+    let chemin = "/buildings?limit=200";
+    if (usage) chemin += "&primary_property_type=" + encodeURIComponent(usage);
+    const page = await appel(chemin);
+    batimentsCharges = page.items;
+    remplirSelectBatiments(batimentsCharges);
+    compte.textContent = page.items.length + " affiches sur " + page.total + " correspondant au filtre"
+      + (page.total > page.items.length ? " (affiner la recherche pour en voir d'autres)" : "");
+  } catch (e) {
+    select.innerHTML = '<option>Impossible de charger la liste</option>';
+    compte.textContent = "";
+  }
+}
+
+function remplirSelectBatiments(liste) {
+  const select = document.getElementById("b-select");
+  select.innerHTML = "";
+  if (!liste.length) {
+    select.innerHTML = '<option value="">Aucun batiment ne correspond</option>';
+    return;
+  }
+  liste.forEach(function (b) {
+    const option = document.createElement("option");
+    option.value = b.ose_building_id;
+    const nom = b.property_name || "Sans nom";
+    option.textContent = "#" + b.ose_building_id + " \\u00b7 " + nom + " \\u00b7 " +
+      b.primary_property_type + " \\u00b7 " + b.neighborhood_grouped + " \\u00b7 " +
+      formatNombre(b.property_gfa_total) + " pi\\u00b2";
+    select.appendChild(option);
+  });
+}
+
+// Filtre cote client, sur la liste deja chargee : pas besoin de rappeler l'API a
+// chaque frappe, l'API ne sait de toute facon filtrer que sur des correspondances
+// exactes, pas sur un texte libre dans le nom.
+function filtrerListeBatiments() {
+  const texte = document.getElementById("b-recherche").value.trim().toLowerCase();
+  if (!texte) { remplirSelectBatiments(batimentsCharges); return; }
+  const filtres = batimentsCharges.filter(function (b) {
+    return (b.property_name || "").toLowerCase().includes(texte) ||
+      b.neighborhood_grouped.toLowerCase().includes(texte) ||
+      b.primary_property_type.toLowerCase().includes(texte);
+  });
+  remplirSelectBatiments(filtres);
+}
+
 async function predireBatimentConnu() {
   masquerErreur("b-erreur");
   document.getElementById("b-resultat").classList.remove("visible");
-  const id = document.getElementById("b-id").value.trim();
-  if (!id) { afficherErreur("b-erreur", "Indiquer un identifiant de batiment."); return; }
+  const id = document.getElementById("b-select").value;
+  if (!id) { afficherErreur("b-erreur", "Choisir un batiment dans la liste."); return; }
   try {
     const p = await appel("/predictions/buildings/" + encodeURIComponent(id), { method: "POST" });
     document.getElementById("b-predit").textContent = formatNombre(p.predicted_kbtu);
