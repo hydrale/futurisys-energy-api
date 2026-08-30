@@ -277,7 +277,7 @@ teste a 98 %, et se livre tout seul. La condition tient au modele, pas au servic
 | R2 sur donnees jamais vues | 0,709 |
 | Erreur relative mediane | 36 % |
 | Temps de reponse de l'API | environ 9 ms |
-| Tests | 146 |
+| Tests | 150 |
 | Couverture | 98 % |
 
 ---
@@ -366,6 +366,14 @@ Une commande, sans rien installer d'autre que Docker :
 `docker run -p 8000:7860 ghcr.io/hydrale/futurisys-energy-api:latest` avec ses trois
 variables. L'API cree ses tables et insere les 1 508 batiments toute seule au
 demarrage. Vous pouvez la lancer de votre cote, l'image est publique.
+
+Deux facons de la montrer : `/docs` pour le contrat technique complet (Swagger), et
+`/` pour une interface visuelle, servie par l'API elle-meme (une page HTML, sans
+fichier a monter, sans configuration reseau supplementaire) : connexion, un batiment
+a choisir dans une liste filtrable par usage et par recherche texte plutot qu'un
+identifiant a deviner, le resultat en chiffres compares a la mesure reelle. Les deux
+appellent exactement les memes onze points d'entree ; l'interface n'apparait pas
+dans le contrat OpenAPI, ce n'est pas un point d'entree supplementaire.
 
 **Que feriez-vous avant une vraie mise en production ?**
 Une limitation du nombre d'appels par compte, HTTPS obligatoire, des jetons de
