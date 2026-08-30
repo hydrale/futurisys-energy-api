@@ -272,8 +272,8 @@ teste a 99 %, et se deploie tout seul. La condition tient au modele, pas au serv
 | R2 sur donnees jamais vues | 0,709 |
 | Erreur relative mediane | 36 % |
 | Temps de reponse de l'API | environ 10 ms |
-| Tests | 127 |
-| Couverture | 99 % |
+| Tests | 143 |
+| Couverture | 98 % |
 
 ---
 
@@ -302,7 +302,7 @@ simulent les pannes : modele absent, base injoignable, prediction qui echoue.
 Le seuil de 90 % de couverture est verifie par la CI, qui refuse la fusion en dessous.
 
 **Comment savez-vous que votre couverture est suffisante ?**
-Elle ne l'est pas par son pourcentage. 99 % de lignes executees ne dit pas que les bons
+Elle ne l'est pas par son pourcentage. 98 % de lignes executees ne dit pas que les bons
 cas sont testes. Ce qui compte est la liste des scenarios : chaque borne de validation
 a son test, chaque code d'erreur a le sien, et le chemin d'echec du modele est verifie
 jusqu'a la ligne ecrite en base.
