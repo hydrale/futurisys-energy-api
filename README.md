@@ -21,6 +21,7 @@ une API, une base de donnees, des tests, et une mise en ligne automatisee.
 ## Sommaire
 
 - [Demarrage rapide](#demarrage-rapide)
+- [Demonstration pas a pas](DEMO.md)
 - [Ce que fait le service](#ce-que-fait-le-service)
 - [Installation detaillee](#installation-detaillee)
 - [Utilisation de l'API](#utilisation-de-lapi)
