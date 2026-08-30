@@ -24,17 +24,22 @@ COPY data ./data
 
 ENV PYTHONPATH=/app/src \
     PYTHONUNBUFFERED=1 \
-    APP_ENV=prod
+    APP_ENV=prod \
+    PORT=7860
 
 USER futurisys
 
-# 7860 : le port qu'attend Hugging Face Spaces. En local, -p 8000:7860 le ramene
-# sur le port habituel.
+# 7860 par defaut : le port qu'attend Hugging Face Spaces. La plupart des autres
+# hebergeurs imposent le leur par la variable PORT, d'ou le passage par une variable
+# plutot qu'un numero ecrit en dur. En local, -p 8000:7860 le ramene sur le port
+# habituel.
 EXPOSE 7860
 
 # Verification de vie : Docker interroge /health et marque le conteneur en echec si
 # la base ou le modele ne repondent plus, au lieu de le laisser tourner a vide.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:7860/health')"
+    CMD python -c "import os,urllib.request; urllib.request.urlopen('http://localhost:'+os.environ.get('PORT','7860')+'/health')"
 
-CMD ["uvicorn", "futurisys.api.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Forme shell et non forme liste : c'est ce qui permet de resoudre ${PORT}. Ecrit en
+# liste, uvicorn recevrait la chaine "${PORT}" telle quelle et refuserait de demarrer.
+CMD ["sh", "-c", "exec uvicorn futurisys.api.main:app --host 0.0.0.0 --port ${PORT:-7860}"]

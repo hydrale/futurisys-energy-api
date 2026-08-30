@@ -1,0 +1,39 @@
+# Description du service pour Render, lue automatiquement a la connexion du depot.
+# Tout est decrit ici plutot que clique dans leur interface : le jour ou le service
+# doit etre recree, il repart a l'identique sans que personne ait a se souvenir des
+# reglages.
+
+services:
+  - type: web
+    name: futurisys-energy-api
+    runtime: docker
+    # Palier gratuit : 512 Mo de memoire. L'image en consomme 373 au repos comme
+    # apres une serie de predictions, mesure sous contrainte avant de choisir.
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    # Render interroge cette adresse pour savoir si le service est vivant, et refuse
+    # une mise en ligne dont le service ne repond pas.
+    healthCheckPath: /health
+    # Chaque envoi sur la branche principale redeploie : c'est la partie livraison
+    # continue de la chaine.
+    autoDeploy: true
+    branch: main
+    envVars:
+      - key: APP_ENV
+        value: prod
+      # PostgreSQL n'est pas dans le palier gratuit pour un service web : la base
+      # tombe sur SQLite, ce que l'enonce autorise explicitement pour la demonstration.
+      # /tmp est le seul emplacement inscriptible sans disque persistant.
+      - key: DATABASE_URL
+        value: sqlite:////tmp/futurisys.db
+      # generateValue : Render tire une valeur aleatoire lui-meme et ne la montre a
+      # personne. C'est exactement ce qu'il faut pour une cle de signature.
+      - key: SECRET_KEY
+        generateValue: true
+      # sync: false : la valeur est saisie une fois dans l'interface de Render et n'est
+      # jamais ecrite dans ce fichier, donc jamais dans le depot.
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
