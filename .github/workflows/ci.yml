@@ -64,8 +64,8 @@ jobs:
 
       - name: Verifier le style et les erreurs statiques
         run: |
-          ruff check src tests
-          ruff format --check src tests
+          ruff check src tests scripts
+          ruff format --check src tests scripts
 
       - name: Entrainer le modele
         # Le modele est reentraine depuis les donnees brutes a chaque execution. C'est

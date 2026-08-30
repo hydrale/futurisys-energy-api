@@ -114,9 +114,12 @@ def journal_des_appels(session: Session, limite: int = 100) -> list[dict]:
 def sante_du_service(session: Session) -> list[dict]:
     """Temps de calcul et taux d'echec. Ce qu'on regarde pour surveiller le service."""
     total = session.scalar(select(func.count()).select_from(PredictionResult)) or 0
-    echecs = session.scalar(
-        select(func.count()).select_from(PredictionResult).where(~PredictionResult.succeeded)
-    ) or 0
+    echecs = (
+        session.scalar(
+            select(func.count()).select_from(PredictionResult).where(~PredictionResult.succeeded)
+        )
+        or 0
+    )
     moyenne = session.scalar(select(func.avg(PredictionResult.duration_ms))) or 0
     return [
         {"indicateur": "appels enregistres", "valeur": total},
@@ -131,7 +134,7 @@ def afficher(titre: str, lignes: list[dict]) -> None:
         print("  (aucune ligne)")
         return
     colonnes = list(lignes[0])
-    largeurs = {c: max(len(c), *(len(str(l[c])) for l in lignes)) for c in colonnes}
+    largeurs = {c: max(len(c), *(len(str(ligne[c])) for ligne in lignes)) for c in colonnes}
     print("  " + "  ".join(c.ljust(largeurs[c]) for c in colonnes))
     for ligne in lignes[:15]:
         print("  " + "  ".join(str(ligne[c]).ljust(largeurs[c]) for c in colonnes))
@@ -158,7 +161,10 @@ def main() -> None:
     with SessionLocal() as session:
         rapports = {
             "volumes_par_table": ("Volume de chaque table", volumes(session)),
-            "consommation_par_usage": ("Consommation mesuree par usage", consommation_par_usage(session)),
+            "consommation_par_usage": (
+                "Consommation mesuree par usage",
+                consommation_par_usage(session),
+            ),
             "journal_des_appels": ("Journal des appels au modele", journal_des_appels(session)),
             "sante_du_service": ("Sante du service", sante_du_service(session)),
         }
