@@ -77,7 +77,15 @@ jobs:
       - name: Attendre que le Space reponde
         env:
           URL: ${{ steps.publication.outputs.space_url }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
         run: |
+          # Repli si l'etape precedente n'a pas transmis l'adresse : on la recalcule
+          # a partir du nom du Space, plutot que d'interroger une adresse vide et de
+          # boucler quinze minutes sans raison lisible.
+          if [ -z "$URL" ]; then
+            URL="https://$(echo "$HF_SPACE" | tr '/' '-' | tr '[:upper:]' '[:lower:]').hf.space"
+            echo "Adresse non transmise, recalculee : $URL"
+          fi
           echo "Verification de $URL/health"
           # Hugging Face reconstruit l'image a chaque envoi : compter plusieurs minutes.
           for i in $(seq 1 60); do
