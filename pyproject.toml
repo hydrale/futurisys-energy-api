@@ -8,7 +8,12 @@ requires-python = ">=3.11"
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+# "." en plus de "src" : les tests s'importent entre eux (from tests.conftest import
+# ...), ce qui exige la racine du projet dans le chemin Python. Elle y est
+# automatiquement avec "python -m pytest", qui ajoute le dossier courant, mais pas
+# avec la commande "pytest" utilisee par l'integration continue. Sans cette ligne,
+# la suite passe en local et echoue en CI.
+pythonpath = ["src", "."]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
 # passlib appelle le module crypt, retire de Python 3.13. L'avertissement vient d'une
