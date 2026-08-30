@@ -1,0 +1,89 @@
+# Livraison continue : met en ligne l'API sur Hugging Face Spaces.
+#
+# Ne se declenche que sur un tag de version (v1.0.0, v1.1.0...). Deployer a chaque
+# commit sur main mettrait en ligne du travail en cours ; le tag est la decision
+# explicite de publier, et il donne un point de retour en arriere identifiable.
+
+name: Deploiement
+
+on:
+  push:
+    tags: ["v*"]
+  # Permet aussi de relancer un deploiement a la main depuis l'onglet Actions,
+  # par exemple apres avoir corrige un secret.
+  workflow_dispatch:
+
+jobs:
+  deploiement:
+    runs-on: ubuntu-latest
+    # L'environnement GitHub "production" : c'est lui qui porte les secrets de mise
+    # en ligne, separes de ceux utilises par les tests.
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Tout l'historique : Hugging Face refuse une poussee dont il ne peut pas
+          # rattacher les commits a ce qu'il a deja.
+          fetch-depth: 0
+          lfs: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Verifier que les secrets sont bien configures
+        # Sans ce controle, l'etape suivante echoue avec une erreur d'authentification
+        # incomprehensible. Ici, le message dit quoi faire.
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "Secret HF_TOKEN absent. Le creer dans Settings > Secrets and variables"
+            echo "> Actions, avec un jeton Hugging Face ayant le droit d'ecriture."
+            exit 1
+          fi
+          if [ -z "$HF_SPACE" ]; then
+            echo "Variable HF_SPACE absente. Format attendu : utilisateur/nom-du-space"
+            exit 1
+          fi
+
+      - name: Reentrainer le modele avant la mise en ligne
+        # Le modele deployé est reconstruit depuis les donnees brutes plutot que repris
+        # du depot : on est certain que ce qui part en ligne correspond au code du tag.
+        run: |
+          pip install -r requirements.txt
+          PYTHONPATH=src python -m futurisys.ml.train
+
+      - name: Publier sur Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          pip install "huggingface_hub[cli]==0.27.1"
+          # Le modele fait 11 Mo : il est envoye comme fichier du Space, avec le code.
+          # upload-large-folder gere la reprise si la connexion coupe.
+          hf auth login --token "$HF_TOKEN"
+          hf upload "$HF_SPACE" . . \
+            --repo-type=space \
+            --exclude=".git/*" ".venv/*" "htmlcov/*" "tests/*" ".pytest_cache/*" \
+            --commit-message "Deploiement ${{ github.ref_name }}"
+
+      - name: Attendre que le Space reponde
+        env:
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          URL="https://$(echo $HF_SPACE | tr '/' '-' | tr '[:upper:]' '[:lower:]').hf.space/health"
+          echo "Verification de $URL"
+          # Hugging Face reconstruit l'image : compter plusieurs minutes.
+          for i in $(seq 1 60); do
+            if curl -sf "$URL" | grep -q '"status"'; then
+              echo "Space en ligne."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "Le Space n'a pas repondu dans les 15 minutes. Consulter ses journaux."
+          exit 1
