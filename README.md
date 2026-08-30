@@ -575,7 +575,12 @@ une base locale. Le code ne voit pas la difference, c'est l'ORM qui traduit.
 
 ## Deploiement
 
-### Mise en place, une seule fois
+Les trois cibles et leurs limites sont detaillees dans
+[`DEPLOIEMENT.md`](DEPLOIEMENT.md). En resume : **Render** pour l'adresse publique
+(palier gratuit, 512 Mo, mesure suffisant), le **registre GitHub** pour l'image, et
+**Hugging Face** ecarte parce qu'il facture desormais les Spaces Docker.
+
+### Hugging Face, mise en place si un compte PRO est disponible
 
 **1. Un jeton Hugging Face avec droit d'ecriture** : sur
 <https://huggingface.co/settings/tokens>, creer un jeton de type *Write*.
