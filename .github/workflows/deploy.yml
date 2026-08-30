@@ -45,9 +45,13 @@ jobs:
             echo "> Actions, avec un jeton Hugging Face ayant le droit d'ecriture."
             exit 1
           fi
-          if [ -z "$HF_SPACE" ]; then
-            echo "Variable HF_SPACE absente. Format attendu : utilisateur/nom-du-space"
-            exit 1
+          # HF_SPACE est facultative : sans elle, le script deduit le compte du jeton
+          # et nomme le Space futurisys-energy-api. La renseigner ne sert qu'a viser
+          # un autre compte ou un autre nom.
+          if [ -n "$HF_SPACE" ]; then
+            echo "Space impose par la variable HF_SPACE : $HF_SPACE"
+          else
+            echo "HF_SPACE non renseignee : le compte sera deduit du jeton."
           fi
 
       - name: Reentrainer le modele avant la mise en ligne
@@ -70,8 +74,11 @@ jobs:
           # Borne haute sur la version majeure : l'interface Python est stable sur une
           # majeure, contrairement a l'outil en ligne de commande qui a change de nom.
           pip install "huggingface_hub>=0.28,<2.0"
+          # --space n'est passe que si la variable est renseignee : une chaine vide
+          # ferait croire au script qu'un nom lui a ete impose.
+          ESPACE="${{ vars.HF_SPACE }}"
           python scripts/deployer_sur_hugging_face.py \
-            --space "${{ vars.HF_SPACE }}" \
+            ${ESPACE:+--space "$ESPACE"} \
             --version "${{ github.ref_name }}"
 
       - name: Attendre que le Space reponde
@@ -83,8 +90,8 @@ jobs:
           # a partir du nom du Space, plutot que d'interroger une adresse vide et de
           # boucler quinze minutes sans raison lisible.
           if [ -z "$URL" ]; then
-            URL="https://$(echo "$HF_SPACE" | tr '/' '-' | tr '[:upper:]' '[:lower:]').hf.space"
-            echo "Adresse non transmise, recalculee : $URL"
+            echo "Adresse du Space non transmise par l'etape precedente." >&2
+            exit 1
           fi
           echo "Verification de $URL/health"
           # Hugging Face reconstruit l'image a chaque envoi : compter plusieurs minutes.
