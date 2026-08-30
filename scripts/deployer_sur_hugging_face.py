@@ -122,8 +122,12 @@ def main() -> None:  # pragma: no cover
     adresse = deployer(arguments.space, arguments.version)
     print(f"\nSpace en construction : {adresse}")
     # Le workflow lit cette sortie pour savoir quelle adresse interroger ensuite.
+    # Le fichier est ferme explicitement : sans cela l'ecriture peut ne jamais etre
+    # videe sur le disque, l'etape suivante interroge une adresse vide et boucle
+    # quinze minutes avant d'echouer sans raison lisible.
     if sortie := os.environ.get("GITHUB_OUTPUT"):
-        Path(sortie).open("a").write(f"space_url={adresse}\n")
+        with Path(sortie).open("a", encoding="utf-8") as fichier:
+            fichier.write(f"space_url={adresse}\n")
 
 
 if __name__ == "__main__":
