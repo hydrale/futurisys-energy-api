@@ -1,0 +1,8 @@
+# --- Dependances de developpement (tests, qualite de code) ---
+# Installees en plus de requirements.txt, jamais dans l'image de production.
+-r requirements.txt
+
+pytest==8.3.4
+pytest-cov==6.0.0
+httpx==0.28.1          # client HTTP utilise par le TestClient de FastAPI
+ruff==0.9.2            # linter + formateur

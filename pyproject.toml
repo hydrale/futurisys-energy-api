@@ -1,0 +1,28 @@
+[project]
+name = "futurisys-energy-api"
+version = "1.0.0"
+description = "API de prediction de la consommation energetique des batiments de Seattle"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+# passlib appelle le module crypt, retire de Python 3.13. L'avertissement vient d'une
+# dependance, pas du projet : on le masque pour que la sortie des tests reste lisible
+# et qu'un vrai avertissement se remarque.
+filterwarnings = [
+    "error::FutureWarning",
+    "ignore:'crypt' is deprecated:DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["src/futurisys"]
+omit = ["*/__init__.py"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]

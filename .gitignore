@@ -1,0 +1,28 @@
+# Secrets : jamais versionnes
+.env
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+
+# Tests et couverture
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Outils
+.ruff_cache/
+.DS_Store
+
+# Le modele entraine : produit par le code, pas du code. 11 Mo qui changeraient a
+# chaque reentrainement et gonfleraient l'historique pour rien. Il est reconstruit
+# par la CI et avant chaque deploiement.
+models/*.joblib
+models/*.json
