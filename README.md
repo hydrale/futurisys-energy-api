@@ -328,8 +328,9 @@ futurisys-energy-api/
 │       ├── train.py              entrainement et sauvegarde
 │       └── predictor.py          chargement et prediction
 ├── scripts/
-│   ├── interroger_base.py        consultation et export des donnees en base
-│   └── deployer_sur_hugging_face.py   mise en ligne du Space
+│   ├── configurer_le_deploiement.sh   secrets et premiere mise en ligne
+│   ├── deployer_sur_hugging_face.py   envoi du code vers le Space
+│   └── interroger_base.py             consultation et export des donnees
 ├── tests/                        143 tests
 ├── Dockerfile                    image de production
 ├── docker-compose.yml            PostgreSQL local
@@ -579,19 +580,26 @@ une base locale. Le code ne voit pas la difference, c'est l'ORM qui traduit.
 **1. Un jeton Hugging Face avec droit d'ecriture** : sur
 <https://huggingface.co/settings/tokens>, creer un jeton de type *Write*.
 
-**2. Creer le Space** sur <https://huggingface.co/new-space>, en choisissant le SDK
-**Docker**.
-
-**3. Renseigner les secrets GitHub** :
+**2. Tout configurer en une commande** :
 
 ```bash
-gh secret set HF_TOKEN --repo hydrale/futurisys-energy-api
-gh variable set HF_SPACE --repo hydrale/futurisys-energy-api --body "votre-compte/futurisys-energy-api"
-gh secret set SECRET_KEY --repo hydrale/futurisys-energy-api
+bash scripts/configurer_le_deploiement.sh
 ```
 
-`HF_TOKEN` et `SECRET_KEY` sont des *secrets* : GitHub les chiffre et ne les reaffiche
-jamais. `HF_SPACE` est une *variable* : ce n'est pas une information sensible.
+Le script demande le jeton sans l'afficher, verifie aupres de Hugging Face qu'il est
+valide et en ecriture, retrouve le nom du compte, pose les trois secrets et la
+variable sur GitHub, puis pousse le tag qui declenche la mise en ligne.
+
+Le jeton passe par l'entree standard, jamais par un argument de commande : il
+n'apparait ni dans l'historique du shell, ni dans la liste des processus de la
+machine. Rien n'est pose tant que le jeton n'a pas ete valide.
+
+`HF_TOKEN`, `SECRET_KEY` et `ADMIN_PASSWORD` sont des *secrets* : GitHub les chiffre
+et ne les reaffiche jamais. `HF_SPACE` est une *variable* : le nom du Space n'est pas
+une information sensible.
+
+Le Space n'a pas besoin d'etre cree a la main : le script de deploiement le cree au
+premier passage.
 
 ### Publier une version
 
