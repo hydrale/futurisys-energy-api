@@ -11,9 +11,9 @@ une API, une base de donnees, des tests, et une mise en ligne automatisee.
 |---|---|
 | **Modele** | Random Forest, 400 arbres, entraine sur 1 508 batiments |
 | **Qualite** | R2 de 0,709 sur 302 batiments jamais vus, erreur mediane de 36 % |
-| **API** | FastAPI, documentation interactive sur `/docs` |
+| **API** | FastAPI ; interface de demo sur `/`, documentation Swagger sur `/docs` |
 | **Base** | PostgreSQL 16, 5 tables, chaque appel trace |
-| **Tests** | 146 tests Pytest, 98 % de couverture |
+| **Tests** | 150 tests Pytest, 98 % de couverture |
 | **Livraison** | Image Docker publique, publiee et verifiee a chaque version |
 
 ---
@@ -191,6 +191,7 @@ PYTHONPATH=src uvicorn futurisys.api.main:app --reload
 
 | Methode | Chemin | Acces | Role |
 |---|---|---|---|
+| `GET` | `/` | libre | interface visuelle de demonstration |
 | `GET` | `/health` | libre | etat du service, de la base et du modele |
 | `POST` | `/auth/token` | libre | se connecter, obtenir un jeton |
 | `GET` | `/auth/me` | connecte | le compte courant |
@@ -205,6 +206,12 @@ PYTHONPATH=src uvicorn futurisys.api.main:app --reload
 
 La documentation complete, avec les schemas de donnees et un bouton pour essayer
 chaque endpoint, est generee automatiquement sur `/docs` (Swagger) et `/redoc`.
+
+Pour une demonstration sans lire de JSON, une interface visuelle est servie sur `/` :
+connexion, formulaire de prediction, comparaison chiffree a la mesure reelle, et
+journal des derniers appels. Elle appelle exactement les memes endpoints, en
+JavaScript ; ce n'est pas un point d'entree supplementaire de l'API, elle n'apparait
+donc pas dans `/openapi.json`.
 
 ### Exemple complet
 
@@ -315,7 +322,8 @@ futurisys-energy-api/
 ├── src/futurisys/
 │   ├── config.py                 reglages, lus dans l'environnement
 │   ├── api/
-│   │   ├── main.py               assemblage, /health, /model
+│   │   ├── main.py               assemblage, /, /health, /model
+│   │   ├── ui.py                 interface visuelle de demonstration (page unique)
 │   │   ├── schemas.py            formats d'entree/sortie et validation
 │   │   ├── security.py           mots de passe et jetons
 │   │   └── routes/               auth, predictions, buildings
@@ -332,7 +340,7 @@ futurisys-energy-api/
 │   ├── configurer_le_deploiement.sh   secrets et premiere mise en ligne
 │   ├── deployer_sur_hugging_face.py   envoi du code vers le Space
 │   └── interroger_base.py             consultation et export des donnees
-├── tests/                        146 tests
+├── tests/                        150 tests
 ├── Dockerfile                    image de production
 ├── docker-compose.yml            PostgreSQL local
 └── requirements.txt              dependances figees
@@ -476,7 +484,7 @@ collecteur externe, et rotation programmee de la cle de signature.
 ## Tests
 
 ```bash
-PYTHONPATH=src pytest                                   # les 146 tests
+PYTHONPATH=src pytest                                   # les 150 tests
 PYTHONPATH=src pytest --cov --cov-report=term-missing   # avec la couverture
 PYTHONPATH=src pytest --cov --cov-report=html           # rapport lisible : htmlcov/index.html
 ```
@@ -489,7 +497,7 @@ TEST_DATABASE_URL=postgresql+psycopg://futurisys:futurisys@localhost:5432/futuri
   PYTHONPATH=src pytest
 ```
 
-### Ce que couvrent les 146 tests
+### Ce que couvrent les 150 tests
 
 | Fichier | Nombre | Ce qui est verifie |
 |---|---:|---|
@@ -538,7 +546,7 @@ Deux jobs enchaines :
 
 1. **tests** — installe les dependances, verifie le style de tout le code (ruff), **reentraine le
    modele depuis les donnees brutes**, cree la base sur un vrai PostgreSQL 16, lance
-   les 146 tests, refuse une couverture sous 90 %, et publie le rapport.
+   les 150 tests, refuse une couverture sous 90 %, et publie le rapport.
 2. **image** — construit l'image Docker, la demarre, et interroge `/health`. Une API
    dont les tests passent mais dont l'image ne demarre pas n'est pas deployable.
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
+from fastapi.responses import HTMLResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,7 @@ from futurisys import __version__
 from futurisys.api.routes import auth, buildings, predictions
 from futurisys.api.schemas import HealthOut, ModelInfo
 from futurisys.api.security import get_current_user
+from futurisys.api.ui import INDEX_HTML
 from futurisys.config import get_settings
 from futurisys.db.models import User
 from futurisys.db.session import get_session
@@ -76,6 +78,21 @@ app = FastAPI(
 app.include_router(auth.router)
 app.include_router(predictions.router)
 app.include_router(buildings.router)
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def interface() -> str:
+    """L'interface visuelle de demonstration.
+
+    Sert la meme API que /docs, en plus lisible pour une soutenance : connexion,
+    prediction sur un batiment connu comparee a la mesure reelle, prediction sur un
+    batiment libre, et le journal des derniers appels.
+
+    include_in_schema=False : cette page n'est pas un point d'entree de l'API, elle
+    n'a donc rien a faire dans le contrat OpenAPI. /docs et /openapi.json restent la
+    documentation technique de reference.
+    """
+    return INDEX_HTML
 
 
 @app.get("/health", response_model=HealthOut, tags=["Service"], summary="Etat du service")
