@@ -208,8 +208,9 @@ La documentation complete, avec les schemas de donnees et un bouton pour essayer
 chaque endpoint, est generee automatiquement sur `/docs` (Swagger) et `/redoc`.
 
 Pour une demonstration sans lire de JSON, une interface visuelle est servie sur `/` :
-connexion, formulaire de prediction, comparaison chiffree a la mesure reelle, et
-journal des derniers appels. Elle appelle exactement les memes endpoints, en
+connexion, un batiment a choisir dans une liste filtrable par usage et par recherche
+texte (plutot qu'un identifiant a deviner), comparaison chiffree a la mesure reelle,
+formulaire de prediction libre, et journal des derniers appels. Elle appelle exactement les memes endpoints, en
 JavaScript ; ce n'est pas un point d'entree supplementaire de l'API, elle n'apparait
 donc pas dans `/openapi.json`.
 
