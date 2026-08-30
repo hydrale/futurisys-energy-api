@@ -26,3 +26,8 @@ htmlcov/
 # par la CI et avant chaque deploiement.
 models/*.joblib
 models/*.json
+
+# Le dossier de rendu : produits de sortie (presentation, PDF, exports), pas du code.
+# Il vit hors du depot, dans ~/Project/futurisys-livrables.
+livrables/
+node_modules/
