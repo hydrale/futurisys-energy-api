@@ -1,37 +1,13 @@
 # Deploiement
 
-Trois cibles, par ordre de ce qui a ete retenu.
+L'API est livree sous forme d'**image Docker publique**, publiee et verifiee
+automatiquement a chaque version. C'est la cible retenue, apres deux hebergeurs
+essayes et ecartes.
 
-## 1. Render, la cible retenue
+## 1. Le registre GitHub, la cible retenue
 
-Palier **gratuit** : 512 Mo de memoire, conteneur Docker, adresse publique en HTTPS.
-La consommation de l'image a ete mesuree sous contrainte avant de choisir : 373 Mo au
-demarrage, 373 Mo apres 25 predictions d'affilee, aucun arret pour depassement.
-
-Tout est decrit dans [`render.yaml`](render.yaml) : le service repart a l'identique
-s'il doit etre recree, sans que personne ait a se souvenir des reglages.
-
-### Mise en place, une seule fois
-
-1. Creer un compte sur <https://render.com> et le relier a GitHub.
-2. *New* > *Blueprint*, choisir le depot `futurisys-energy-api`. Render lit
-   `render.yaml` et propose le service.
-3. Renseigner `ADMIN_PASSWORD` (le seul reglage qui n'est pas dans le fichier :
-   `sync: false` interdit de l'y ecrire). `SECRET_KEY` est tiree au hasard par Render.
-4. *Apply*.
-
-Ensuite, chaque envoi sur `main` redeploie tout seul (`autoDeploy: true`).
-
-### La limite a connaitre
-
-Le palier gratuit **endort** le service apres une periode sans trafic. Le premier
-appel qui suit le reveille et met environ trente secondes. Avant une demonstration,
-ouvrir l'adresse deux minutes a l'avance.
-
-## 2. Le registre GitHub, toujours disponible
-
-Chaque tag publie l'image, la demarre et l'interroge avant de la declarer bonne.
-Elle ne depend d'aucun compte tiers ni d'aucun abonnement.
+L'image est publique : elle se telecharge et se lance **sans compte, sans carte et
+sans configuration**.
 
 ```bash
 docker run -p 8000:7860 \
@@ -42,9 +18,35 @@ docker run -p 8000:7860 \
 ```
 
 Puis <http://localhost:8000/docs>. L'API cree ses tables et insere les 1 508 batiments
-toute seule au demarrage.
+toute seule au demarrage : rien d'autre a preparer.
 
-## 3. Hugging Face Spaces, ecarte
+A chaque tag, le pipeline entraine le modele, construit l'image, la publie, **la
+demarre et interroge son etat de sante** avant de la declarer bonne. Une image qui ne
+demarre pas ne sort jamais.
+
+Versions publiees : `v1.2.1`, `v1.3.0`, `latest`.
+
+## 2. Render, essaye et ecarte
+
+Render annonce un palier gratuit : 512 Mo, conteneur Docker, adresse publique.
+La consommation de l'image a ete mesuree sous cette contrainte avant d'aller plus
+loin : 373 Mo au demarrage, 373 Mo apres 25 predictions d'affilee, aucun arret pour
+depassement. Techniquement, ca passait.
+
+Le service a ete configure jusqu'au bout (depot public, Docker, palier a 0 $/mois,
+variables d'environnement, controle de sante sur `/health`). Le dernier clic ouvre
+une demande de **carte bancaire** :
+
+> To verify your card, Render will perform a temporary authorization for $1 USD.
+
+Le palier reste a 0 $/mois, mais l'inscription exige un moyen de paiement. Ecarte
+pour cette raison, pas pour une raison technique.
+
+La configuration est conservee dans [`render.yaml`](render.yaml) : le service repart
+en un clic le jour ou une carte est disponible. A savoir : le palier gratuit endort
+le service apres inactivite, et le reveil prend une trentaine de secondes.
+
+## 3. Hugging Face Spaces, essaye et ecarte
 
 C'etait la plateforme suggeree par l'enonce. Elle a ete tentee et **refusee par leur
 facturation** :
@@ -61,7 +63,17 @@ suffit d'un compte PRO pour que l'etape passe. Elle est en `continue-on-error` p
 que son echec, qui tient a un abonnement et non au code, ne masque pas la publication
 reussie de l'image.
 
-L'enonce prevoit ce cas : il ecrit « Hugging Face Spaces **ou equivalent** ».
+## Ce que ces deux refus disent
+
+Les deux hebergeurs qui proposaient hier un palier gratuit sans condition demandent
+aujourd'hui un abonnement ou une carte. La reponse a ete de ne dependre d'aucun
+d'eux : l'image publiee dans le registre de GitHub s'installe partout, y compris
+chez ces deux hebergeurs le jour ou on le decide, et le code de deploiement vers
+Hugging Face reste en place et fonctionnel.
+
+L'enonce prevoit ce cas : il ecrit « Hugging Face Spaces **ou equivalent** », et
+demande une infrastructure de deploiement automatisee « autant que possible avec la
+solution choisie ».
 
 ## Le port
 

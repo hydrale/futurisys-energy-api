@@ -14,7 +14,7 @@ une API, une base de donnees, des tests, et une mise en ligne automatisee.
 | **API** | FastAPI, documentation interactive sur `/docs` |
 | **Base** | PostgreSQL 16, 5 tables, chaque appel trace |
 | **Tests** | 146 tests Pytest, 98 % de couverture |
-| **Mise en ligne** | GitHub Actions vers Hugging Face Spaces |
+| **Livraison** | Image Docker publique, publiee et verifiee a chaque version |
 
 ---
 
@@ -575,12 +575,30 @@ une base locale. Le code ne voit pas la difference, c'est l'ORM qui traduit.
 
 ## Deploiement
 
-Les trois cibles et leurs limites sont detaillees dans
-[`DEPLOIEMENT.md`](DEPLOIEMENT.md). En resume : **Render** pour l'adresse publique
-(palier gratuit, 512 Mo, mesure suffisant), le **registre GitHub** pour l'image, et
-**Hugging Face** ecarte parce qu'il facture desormais les Spaces Docker.
+L'API est livree sous forme d'**image Docker publique**. Elle se telecharge et se
+lance sans compte, sans carte et sans configuration :
 
-### Hugging Face, mise en place si un compte PRO est disponible
+```bash
+docker run -p 8000:7860 \
+  -e DATABASE_URL=sqlite:////tmp/futurisys.db \
+  -e SECRET_KEY=une-cle-a-vous \
+  -e ADMIN_PASSWORD=un-mot-de-passe-a-vous \
+  ghcr.io/hydrale/futurisys-energy-api:latest
+```
+
+Puis <http://localhost:8000/docs>. L'API cree ses tables et insere les 1 508 batiments
+toute seule.
+
+A chaque tag, le pipeline entraine le modele, construit l'image, la publie, **la
+demarre et interroge son etat de sante** avant de la declarer bonne : une image qui ne
+demarre pas ne sort jamais.
+
+Deux hebergeurs ont ete essayes et ecartes, tous deux pour une raison commerciale et
+non technique : Hugging Face facture desormais les Spaces Docker, Render exige une
+carte bancaire meme sur son palier a 0 $. Le detail, les mesures et le code conserve
+pour chacun sont dans [`DEPLOIEMENT.md`](DEPLOIEMENT.md).
+
+### Hugging Face, si un compte PRO devient disponible
 
 **1. Un jeton Hugging Face avec droit d'ecriture** : sur
 <https://huggingface.co/settings/tokens>, creer un jeton de type *Write*.
