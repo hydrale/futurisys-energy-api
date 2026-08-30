@@ -242,9 +242,14 @@ modele a appris ce qu'un thermicien aurait dit en premier.
   donnees : sur un batiment renove, il surestime.
 
 **Le service.**
-- SQLite en production de demonstration, pas PostgreSQL : l'hebergement gratuit ne
-  permet pas d'en faire tourner un a cote. L'enonce autorise explicitement une base
-  locale. Le code ne voit pas la difference, c'est l'ORM qui traduit.
+- Pas d'adresse publique permanente. Les deux hebergeurs gratuits envisages ont ete
+  ecartes pour une raison commerciale : Hugging Face facture desormais les Spaces
+  Docker (402 a la creation), Render exige une carte bancaire meme sur son palier a
+  0 $. L'API est donc livree en image Docker publique, qui se lance sans compte ni
+  carte. L'enonce ecrit « Hugging Face Spaces ou equivalent ».
+- SQLite dans l'image de demonstration, pas PostgreSQL : elle doit demarrer seule,
+  sans base a cote. L'enonce autorise explicitement une base locale. Le code ne voit
+  pas la difference, c'est l'ORM qui traduit.
 - Pas de limitation du nombre d'appels par compte : un client pourrait saturer le
   service.
 - Jetons valables une heure sans mecanisme de rafraichissement : il faut se
@@ -344,6 +349,23 @@ donnees brutes, ce qui prouve au passage que la chaine complete tourne encore.
 **Pourquoi un tag pour deployer, et pas chaque commit sur main ?**
 Deployer a chaque commit mettrait en ligne du travail en cours. Le tag est la decision
 explicite de publier, et il donne un point de retour en arriere identifiable.
+
+**Pourquoi l'API n'est-elle pas sur une adresse publique ?**
+Parce que les deux hebergeurs gratuits envisages sont devenus payants pendant le
+projet. Hugging Face repond 402 a la creation d'un Space Docker, reserve aux comptes
+PRO. Render annonce un palier a 0 $ mais reclame une carte bancaire au dernier clic.
+J'ai mesure la consommation memoire de l'image sous la contrainte de 512 Mo de Render
+avant de m'y engager : 373 Mo, elle passait techniquement. Le blocage est commercial.
+La reponse a ete de ne dependre d'aucun des deux : l'image est publiee dans le
+registre de GitHub, publique, et le pipeline la demarre et l'interroge avant de la
+declarer bonne. Le code de deploiement vers Hugging Face reste en place et
+fonctionnel, il suffit d'un compte PRO. La configuration Render aussi.
+
+**Comment demontrez-vous l'API en soutenance, alors ?**
+Une commande, sans rien installer d'autre que Docker :
+`docker run -p 8000:7860 ghcr.io/hydrale/futurisys-energy-api:latest` avec ses trois
+variables. L'API cree ses tables et insere les 1 508 batiments toute seule au
+demarrage. Vous pouvez la lancer de votre cote, l'image est publique.
 
 **Que feriez-vous avant une vraie mise en production ?**
 Une limitation du nombre d'appels par compte, HTTPS obligatoire, des jetons de
