@@ -58,32 +58,37 @@ jobs:
           PYTHONPATH=src python -m futurisys.ml.train
 
       - name: Publier sur Hugging Face Spaces
+        id: publication
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_SPACE: ${{ vars.HF_SPACE }}
+          # Les secrets de l'application, distincts du jeton d'acces a la plateforme.
+          # Le script les pose comme secrets du Space : ils ne sont ni dans le depot,
+          # ni dans les journaux, ni dans le code envoye.
+          APP_SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          APP_ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: |
-          pip install "huggingface_hub[cli]==0.27.1"
-          # Le modele fait 11 Mo : il est envoye comme fichier du Space, avec le code.
-          # upload-large-folder gere la reprise si la connexion coupe.
-          hf auth login --token "$HF_TOKEN"
-          hf upload "$HF_SPACE" . . \
-            --repo-type=space \
-            --exclude=".git/*" ".venv/*" "htmlcov/*" "tests/*" ".pytest_cache/*" \
-            --commit-message "Deploiement ${{ github.ref_name }}"
+          # Borne haute sur la version majeure : l'interface Python est stable sur une
+          # majeure, contrairement a l'outil en ligne de commande qui a change de nom.
+          pip install "huggingface_hub>=0.28,<2.0"
+          python scripts/deployer_sur_hugging_face.py \
+            --space "${{ vars.HF_SPACE }}" \
+            --version "${{ github.ref_name }}"
 
       - name: Attendre que le Space reponde
         env:
-          HF_SPACE: ${{ vars.HF_SPACE }}
+          URL: ${{ steps.publication.outputs.space_url }}
         run: |
-          URL="https://$(echo $HF_SPACE | tr '/' '-' | tr '[:upper:]' '[:lower:]').hf.space/health"
-          echo "Verification de $URL"
-          # Hugging Face reconstruit l'image : compter plusieurs minutes.
+          echo "Verification de $URL/health"
+          # Hugging Face reconstruit l'image a chaque envoi : compter plusieurs minutes.
           for i in $(seq 1 60); do
-            if curl -sf "$URL" | grep -q '"status"'; then
-              echo "Space en ligne."
+            if curl -sf "$URL/health" | grep -q '"status"'; then
+              echo "Space en ligne :"
+              curl -s "$URL/health"
+              echo
+              echo "Documentation : $URL/docs"
               exit 0
             fi
             sleep 15
           done
-          echo "Le Space n'a pas repondu dans les 15 minutes. Consulter ses journaux."
+          echo "Le Space n'a pas repondu en 15 minutes. Consulter ses journaux : $URL"
           exit 1

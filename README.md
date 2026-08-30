@@ -13,7 +13,7 @@ une API, une base de donnees, des tests, et une mise en ligne automatisee.
 | **Qualite** | R2 de 0,709 sur 302 batiments jamais vus, erreur mediane de 36 % |
 | **API** | FastAPI, documentation interactive sur `/docs` |
 | **Base** | PostgreSQL 16, 5 tables, chaque appel trace |
-| **Tests** | 127 tests Pytest, 99 % de couverture |
+| **Tests** | 143 tests Pytest, 98 % de couverture |
 | **Mise en ligne** | GitHub Actions vers Hugging Face Spaces |
 
 ---
@@ -328,8 +328,9 @@ futurisys-energy-api/
 │       ├── train.py              entrainement et sauvegarde
 │       └── predictor.py          chargement et prediction
 ├── scripts/
-│   └── interroger_base.py        consultation et export des donnees en base
-├── tests/                        127 tests
+│   ├── interroger_base.py        consultation et export des donnees en base
+│   └── deployer_sur_hugging_face.py   mise en ligne du Space
+├── tests/                        143 tests
 ├── Dockerfile                    image de production
 ├── docker-compose.yml            PostgreSQL local
 └── requirements.txt              dependances figees
@@ -473,7 +474,7 @@ collecteur externe, et rotation programmee de la cle de signature.
 ## Tests
 
 ```bash
-PYTHONPATH=src pytest                                   # les 127 tests
+PYTHONPATH=src pytest                                   # les 143 tests
 PYTHONPATH=src pytest --cov --cov-report=term-missing   # avec la couverture
 PYTHONPATH=src pytest --cov --cov-report=html           # rapport lisible : htmlcov/index.html
 ```
@@ -486,7 +487,7 @@ TEST_DATABASE_URL=postgresql+psycopg://futurisys:futurisys@localhost:5432/futuri
   PYTHONPATH=src pytest
 ```
 
-### Ce que couvrent les 127 tests
+### Ce que couvrent les 143 tests
 
 | Fichier | Nombre | Ce qui est verifie |
 |---|---:|---|
@@ -501,10 +502,14 @@ TEST_DATABASE_URL=postgresql+psycopg://futurisys:futurisys@localhost:5432/futuri
 | `test_api_buildings.py` | 12 | filtres, pagination, 404 |
 | `test_error_paths.py` | 11 | modele absent, base injoignable, prediction en echec |
 | `test_cli_and_session.py` | 5 | les commandes de deploiement, la fermeture des sessions |
+| `test_deploiement.py` | 6 | ce qui part sur l'hebergeur, et ce qui n'y part pas |
+| `test_interroger_base.py` | 10 | les requetes du script de consultation et son export |
 
-Couverture : **99 %**. Les lignes non couvertes sont la recherche complete
-d'hyperparametres, qui prend plusieurs minutes, et deux gardes
-`if __name__ == "__main__"`.
+Couverture : **98 %**, code des scripts inclus. Les lignes non couvertes sont la recherche complete d'hyperparametres, qui prend
+plusieurs minutes, les gardes `if __name__ == "__main__"`, et les appels reseau vers
+Hugging Face : les tester demanderait un vrai jeton et creerait un vrai Space a chaque
+execution. La partie du deploiement verifiable sans reseau, la preparation des
+fichiers envoyes, est isolee et couverte par 6 tests.
 
 ### Les tests qui comptent vraiment
 
@@ -531,7 +536,7 @@ Deux jobs enchaines :
 
 1. **tests** — installe les dependances, verifie le style de tout le code (ruff), **reentraine le
    modele depuis les donnees brutes**, cree la base sur un vrai PostgreSQL 16, lance
-   les 127 tests, refuse une couverture sous 90 %, et publie le rapport.
+   les 143 tests, refuse une couverture sous 90 %, et publie le rapport.
 2. **image** — construit l'image Docker, la demarre, et interroge `/health`. Une API
    dont les tests passent mais dont l'image ne demarre pas n'est pas deployable.
 
