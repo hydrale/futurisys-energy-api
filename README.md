@@ -529,7 +529,7 @@ les seuls appels qu'on perdrait seraient justement ceux qui posent probleme.
 
 Deux jobs enchaines :
 
-1. **tests** — installe les dependances, verifie le style (ruff), **reentraine le
+1. **tests** — installe les dependances, verifie le style de tout le code (ruff), **reentraine le
    modele depuis les donnees brutes**, cree la base sur un vrai PostgreSQL 16, lance
    les 127 tests, refuse une couverture sous 90 %, et publie le rapport.
 2. **image** — construit l'image Docker, la demarre, et interroge `/health`. Une API
