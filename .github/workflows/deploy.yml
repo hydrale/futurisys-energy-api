@@ -43,19 +43,34 @@ jobs:
         # a faire tourner, et il expire tout seul a la fin.
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Construire et publier
-        run: |
+      # QEMU permet a une machine x86 de construire aussi la variante ARM. Sans lui,
+      # l'image ne sortirait qu'en x86 et les Mac recents la feraient tourner en
+      # emulation, avec un avertissement a chaque lancement et des performances
+      # degradees. Or la demonstration se fait justement sur un Mac ARM.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Construire et publier pour les deux architectures
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
           # Le nom du depot est mis en minuscules : le registre les exige, alors que
           # les noms de depots GitHub acceptent les majuscules.
-          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
-          docker build -t "$IMAGE:${{ github.ref_name }}" -t "$IMAGE:latest" .
-          docker push "$IMAGE:${{ github.ref_name }}"
-          docker push "$IMAGE:latest"
-          echo "Image publiee : $IMAGE:${{ github.ref_name }}"
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/futurisys-energy-api:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/futurisys-energy-api:latest
+          # Reutilise les couches de la construction precedente : sans ce cache,
+          # chaque version reinstalle scikit-learn et ses dependances pour les deux
+          # architectures, dont l'une en emulation.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Verifier que l'image publiee demarre vraiment
         run: |
-          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          # Le runner est en x86 : c'est la variante amd64 qui est tiree et testee.
+          IMAGE="ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/futurisys-energy-api"
           docker run -d --name verification -p 7860:7860 \
             -e DATABASE_URL=sqlite:////tmp/futurisys.db \
             -e SECRET_KEY=cle-jetable-de-verification \
