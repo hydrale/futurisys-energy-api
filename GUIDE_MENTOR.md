@@ -265,7 +265,7 @@ qui peut appeler, dont chaque reponse est tracee, et dont la mise a jour est
 automatisee.
 
 **Le verdict.** Ca marche, sous condition. Le service est fonctionnel de bout en bout,
-teste a 99 %, et se deploie tout seul. La condition tient au modele, pas au service :
+teste a 98 %, et se livre tout seul. La condition tient au modele, pas au service :
 36 % d'erreur mediane conviennent pour prioriser des audits, pas pour facturer.
 
 **Les chiffres a retenir.**
@@ -276,7 +276,7 @@ teste a 99 %, et se deploie tout seul. La condition tient au modele, pas au serv
 | Colonnes vues par le modele | 15 |
 | R2 sur donnees jamais vues | 0,709 |
 | Erreur relative mediane | 36 % |
-| Temps de reponse de l'API | environ 10 ms |
+| Temps de reponse de l'API | environ 9 ms |
 | Tests | 146 |
 | Couverture | 98 % |
 
