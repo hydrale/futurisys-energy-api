@@ -89,3 +89,34 @@ def test_un_modele_absent_arrete_le_deploiement(tmp_path, monkeypatch):
         module.preparer(destination)
     assert "train" in str(erreur.value)
     shutil.rmtree(destination)
+
+
+class ApiFictive:
+    """Un faux client Hugging Face : whoami() sans reseau ni jeton."""
+
+    def __init__(self, compte: str):
+        self._compte = compte
+
+    def whoami(self) -> dict:
+        return {"name": self._compte}
+
+
+def test_le_compte_est_deduit_du_jeton_quand_rien_n_est_impose():
+    """Evite d'avoir a saisir son pseudo : le jeton porte deja l'information."""
+    from scripts.deployer_sur_hugging_face import nom_du_space
+
+    assert nom_du_space(ApiFictive("hydrale"), None) == "hydrale/futurisys-energy-api"
+
+
+def test_un_space_impose_a_la_main_est_respecte():
+    """Permet de viser un autre compte ou un autre nom, sans toucher au code."""
+    from scripts.deployer_sur_hugging_face import nom_du_space
+
+    assert nom_du_space(ApiFictive("hydrale"), "orga/autre-nom") == "orga/autre-nom"
+
+
+def test_un_space_vide_est_traite_comme_absent():
+    """Une variable GitHub non renseignee arrive comme une chaine vide, pas comme None."""
+    from scripts.deployer_sur_hugging_face import nom_du_space
+
+    assert nom_du_space(ApiFictive("hydrale"), "") == "hydrale/futurisys-energy-api"

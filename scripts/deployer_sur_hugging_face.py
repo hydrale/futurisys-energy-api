@@ -1,6 +1,7 @@
 """Publie l'API sur un Space Hugging Face.
 
-    python scripts/deployer_sur_hugging_face.py --space compte/nom-du-space --version v1.2.0
+    python scripts/deployer_sur_hugging_face.py --version v1.2.0
+    python scripts/deployer_sur_hugging_face.py --space compte/autre-nom
 
 Appele par le workflow de deploiement, jamais a la main en temps normal. Il est ecrit
 en Python plutot qu'en lignes de commande dans le YAML pour trois raisons : la
@@ -36,6 +37,11 @@ DOSSIERS = ["src", "models", "data"]
 # sait pas qu'il doit construire une image Docker et reste bloque au demarrage.
 README_DU_SPACE = "README_HF.md"
 
+# Nom du Space, quand il n'est pas impose. Le compte proprietaire est deduit du jeton :
+# c'est une information que le jeton porte deja, la redemander serait une occasion de
+# se tromper de casse ou de pseudo, et l'erreur ne se verrait qu'au moment de l'envoi.
+NOM_PAR_DEFAUT = "futurisys-energy-api"
+
 
 def preparer(destination: Path) -> None:
     """Recopie dans un dossier temporaire ce qui doit partir, et rien de plus."""
@@ -58,7 +64,20 @@ def preparer(destination: Path) -> None:
         )
 
 
-def deployer(space: str, version: str) -> str:  # pragma: no cover
+def nom_du_space(api, space: str | None) -> str:
+    """Rend l'identifiant complet du Space : compte/nom.
+
+    Sans --space, le compte est lu sur le jeton lui-meme. Le jeton porte deja cette
+    information : la redemander a l'utilisateur ajoute une occasion de se tromper de
+    pseudo, et l'erreur ne se verrait qu'a l'envoi, avec un message peu clair.
+    """
+    if space:
+        return space
+    compte = api.whoami()["name"]
+    return f"{compte}/{NOM_PAR_DEFAUT}"
+
+
+def deployer(space: str | None, version: str) -> str:  # pragma: no cover
     # Exclu de la mesure de couverture : cette fonction ne fait que des appels a la
     # plateforme Hugging Face. La tester demanderait un vrai jeton et creerait un vrai
     # Space a chaque execution des tests. Ce qui est verifiable sans reseau, la
@@ -70,6 +89,7 @@ def deployer(space: str, version: str) -> str:  # pragma: no cover
         raise SystemExit("Variable HF_TOKEN absente.")
 
     api = HfApi(token=jeton)
+    space = nom_du_space(api, space)
 
     # exist_ok : le script cree le Space au premier deploiement et le reutilise ensuite.
     # Sans cela, le tout premier deploiement echouerait sur un Space introuvable.
@@ -115,7 +135,11 @@ def deployer(space: str, version: str) -> str:  # pragma: no cover
 
 def main() -> None:  # pragma: no cover
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--space", required=True, help="compte/nom-du-space")
+    parser.add_argument(
+        "--space",
+        default=None,
+        help="compte/nom-du-space. Par defaut, deduit du compte proprietaire du jeton.",
+    )
     parser.add_argument("--version", default="manuel")
     arguments = parser.parse_args()
 

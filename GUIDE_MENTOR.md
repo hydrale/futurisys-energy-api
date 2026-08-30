@@ -272,7 +272,7 @@ teste a 99 %, et se deploie tout seul. La condition tient au modele, pas au serv
 | R2 sur donnees jamais vues | 0,709 |
 | Erreur relative mediane | 36 % |
 | Temps de reponse de l'API | environ 10 ms |
-| Tests | 143 |
+| Tests | 146 |
 | Couverture | 98 % |
 
 ---

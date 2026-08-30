@@ -13,7 +13,7 @@ une API, une base de donnees, des tests, et une mise en ligne automatisee.
 | **Qualite** | R2 de 0,709 sur 302 batiments jamais vus, erreur mediane de 36 % |
 | **API** | FastAPI, documentation interactive sur `/docs` |
 | **Base** | PostgreSQL 16, 5 tables, chaque appel trace |
-| **Tests** | 143 tests Pytest, 98 % de couverture |
+| **Tests** | 146 tests Pytest, 98 % de couverture |
 | **Mise en ligne** | GitHub Actions vers Hugging Face Spaces |
 
 ---
@@ -331,7 +331,7 @@ futurisys-energy-api/
 │   ├── configurer_le_deploiement.sh   secrets et premiere mise en ligne
 │   ├── deployer_sur_hugging_face.py   envoi du code vers le Space
 │   └── interroger_base.py             consultation et export des donnees
-├── tests/                        143 tests
+├── tests/                        146 tests
 ├── Dockerfile                    image de production
 ├── docker-compose.yml            PostgreSQL local
 └── requirements.txt              dependances figees
@@ -475,7 +475,7 @@ collecteur externe, et rotation programmee de la cle de signature.
 ## Tests
 
 ```bash
-PYTHONPATH=src pytest                                   # les 143 tests
+PYTHONPATH=src pytest                                   # les 146 tests
 PYTHONPATH=src pytest --cov --cov-report=term-missing   # avec la couverture
 PYTHONPATH=src pytest --cov --cov-report=html           # rapport lisible : htmlcov/index.html
 ```
@@ -488,7 +488,7 @@ TEST_DATABASE_URL=postgresql+psycopg://futurisys:futurisys@localhost:5432/futuri
   PYTHONPATH=src pytest
 ```
 
-### Ce que couvrent les 143 tests
+### Ce que couvrent les 146 tests
 
 | Fichier | Nombre | Ce qui est verifie |
 |---|---:|---|
@@ -503,7 +503,7 @@ TEST_DATABASE_URL=postgresql+psycopg://futurisys:futurisys@localhost:5432/futuri
 | `test_api_buildings.py` | 12 | filtres, pagination, 404 |
 | `test_error_paths.py` | 11 | modele absent, base injoignable, prediction en echec |
 | `test_cli_and_session.py` | 5 | les commandes de deploiement, la fermeture des sessions |
-| `test_deploiement.py` | 6 | ce qui part sur l'hebergeur, et ce qui n'y part pas |
+| `test_deploiement.py` | 9 | ce qui part sur l'hebergeur, et le nom du Space |
 | `test_interroger_base.py` | 10 | les requetes du script de consultation et son export |
 
 Couverture : **98 %**, code des scripts inclus. Les lignes non couvertes sont la recherche complete d'hyperparametres, qui prend
@@ -537,7 +537,7 @@ Deux jobs enchaines :
 
 1. **tests** — installe les dependances, verifie le style de tout le code (ruff), **reentraine le
    modele depuis les donnees brutes**, cree la base sur un vrai PostgreSQL 16, lance
-   les 143 tests, refuse une couverture sous 90 %, et publie le rapport.
+   les 146 tests, refuse une couverture sous 90 %, et publie le rapport.
 2. **image** — construit l'image Docker, la demarre, et interroge `/health`. Une API
    dont les tests passent mais dont l'image ne demarre pas n'est pas deployable.
 
@@ -587,16 +587,19 @@ bash scripts/configurer_le_deploiement.sh
 ```
 
 Le script demande le jeton sans l'afficher, verifie aupres de Hugging Face qu'il est
-valide et en ecriture, retrouve le nom du compte, pose les trois secrets et la
-variable sur GitHub, puis pousse le tag qui declenche la mise en ligne.
+valide et en ecriture, pose les trois secrets sur GitHub, puis pousse le tag qui
+declenche la mise en ligne.
+
+Le compte proprietaire du Space est deduit du jeton : il n'y a pas de pseudo a taper.
+La variable `HF_SPACE` ne sert qu'a viser un autre compte ou un autre nom.
 
 Le jeton passe par l'entree standard, jamais par un argument de commande : il
 n'apparait ni dans l'historique du shell, ni dans la liste des processus de la
 machine. Rien n'est pose tant que le jeton n'a pas ete valide.
 
 `HF_TOKEN`, `SECRET_KEY` et `ADMIN_PASSWORD` sont des *secrets* : GitHub les chiffre
-et ne les reaffiche jamais. `HF_SPACE` est une *variable* : le nom du Space n'est pas
-une information sensible.
+et ne les reaffiche jamais. `HF_SPACE`, facultative, est une *variable* : le nom du
+Space n'est pas une information sensible.
 
 Le Space n'a pas besoin d'etre cree a la main : le script de deploiement le cree au
 premier passage.
