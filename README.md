@@ -327,6 +327,8 @@ futurisys-energy-api/
 │       ├── preparation.py        la chaine de nettoyage
 │       ├── train.py              entrainement et sauvegarde
 │       └── predictor.py          chargement et prediction
+├── scripts/
+│   └── interroger_base.py        consultation et export des donnees en base
 ├── tests/                        127 tests
 ├── Dockerfile                    image de production
 ├── docker-compose.yml            PostgreSQL local
@@ -383,6 +385,18 @@ FROM buildings GROUP BY 1 ORDER BY 3 DESC;
 SELECT r.created_at, r.error_message
 FROM prediction_results r WHERE NOT r.succeeded ORDER BY 1 DESC;
 ```
+
+**Sans ecrire de SQL**, un script rend les memes informations et sait les exporter :
+
+```bash
+PYTHONPATH=src python scripts/interroger_base.py
+PYTHONPATH=src python scripts/interroger_base.py --export exports/
+```
+
+Il produit quatre tableaux : le volume de chaque table, la consommation mesuree par
+usage, le journal complet des appels (entrees envoyees et sorties produites), et deux
+indicateurs de sante du service. Tout passe par l'ORM, donc il fonctionne aussi bien
+sur PostgreSQL que sur SQLite.
 
 ### Besoins analytiques
 
