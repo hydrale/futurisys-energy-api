@@ -1,0 +1,25 @@
+# PostgreSQL en conteneur plutot qu'installe sur la machine : la base s'allume et
+# s'eteint en une commande, la version est la meme pour tout le monde, et c'est
+# exactement l'image utilisee par les tests automatiques sur GitHub.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: futurisys-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-futurisys}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-futurisys}
+      POSTGRES_DB: ${POSTGRES_DB:-futurisys}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - futurisys_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Le conteneur met quelques secondes a accepter les connexions apres son
+      # demarrage. Sans ce test, un script lance juste apres echouerait au hasard.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-futurisys}"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  futurisys_pgdata:
