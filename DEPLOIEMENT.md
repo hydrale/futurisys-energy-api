@@ -30,6 +30,43 @@ performances degradees. Or la demonstration se fait justement sur un Mac ARM.
 
 Versions publiees : `v1.2.1`, `v1.3.0`, `v1.4.0`, `latest`.
 
+## 1 bis. Exposer l'API le temps d'une demonstration
+
+L'image tourne en local. Pour qu'un evaluateur l'essaie **depuis sa propre machine**
+pendant une soutenance, un tunnel suffit : il n'y a ni compte a creer, ni carte, ni
+port a ouvrir sur la box.
+
+```bash
+# 1. Lancer l'API avec des secrets forts, generes pour l'occasion
+CLE=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+MDP=$(python3 -c "import secrets; print('demo-' + secrets.token_urlsafe(12))")
+docker run -d --name demo -p 8000:7860 \
+  -e DATABASE_URL=sqlite:////tmp/futurisys.db \
+  -e SECRET_KEY="$CLE" -e ADMIN_USERNAME=admin -e ADMIN_PASSWORD="$MDP" \
+  ghcr.io/hydrale/futurisys-energy-api:latest
+echo "mot de passe : $MDP"
+
+# 2. Ouvrir le tunnel : l'URL HTTPS publique s'affiche en une dizaine de secondes
+cloudflared tunnel --url http://localhost:8000
+```
+
+Le tunnel est une connexion **sortante** de la machine vers Cloudflare : contrairement
+a une redirection de port sur la box, il n'ouvre aucune breche permanente, il donne du
+HTTPS sans certificat a gerer, et il disparait entierement des qu'on l'interrompt.
+
+### Ce que ce n'est pas
+
+Ce n'est **pas un hebergement**. L'URL vit tant que la machine est allumee et que la
+commande tourne, et elle change a chaque relance. C'est un moyen de faire essayer le
+service en direct, pas une adresse de production a inscrire dans un livrable.
+
+### Le point de vigilance
+
+Des que le tunnel est ouvert, le service est reellement exposé a Internet. Les secrets
+de developpement (`SECRET_KEY=cle-de-demo`, mot de passe simple) n'ont plus leur place :
+d'ou la generation de valeurs fortes dans la commande ci-dessus, a refaire a chaque
+session plutot qu'a reutiliser.
+
 ## 2. Render, essaye et ecarte
 
 Render annonce un palier gratuit : 512 Mo, conteneur Docker, adresse publique.
