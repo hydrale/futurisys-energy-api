@@ -32,9 +32,9 @@ Versions publiees : `v1.2.1`, `v1.3.0`, `v1.4.0`, `latest`.
 
 ## 1 bis. Exposer l'API le temps d'une demonstration
 
-L'image tourne en local. Pour qu'un evaluateur l'essaie **depuis sa propre machine**
-pendant une soutenance, un tunnel suffit : il n'y a ni compte a creer, ni carte, ni
-port a ouvrir sur la box.
+L'image tourne en local. Pour qu'une personne exterieure l'essaie **depuis sa propre
+machine** pendant une demonstration, un tunnel suffit : il n'y a ni compte a creer, ni
+carte, ni port a ouvrir sur la box.
 
 ```bash
 # 1. Lancer l'API avec des secrets forts, generes pour l'occasion
